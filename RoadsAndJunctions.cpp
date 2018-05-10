@@ -97,7 +97,7 @@ random_device rd;
 mt19937 rand_gen(rd());
 
 struct UnionFind {
-    static const int MAX = 1001;
+    static const int MAX = 100001;
     int par[MAX];
     void init(int N) {
         for (int i=0; i<N; ++i) {
@@ -144,6 +144,8 @@ public:
     vector<int> c;
     UnionFind uf;
 
+    vector<int> junctions;
+
     vector<int> buildJunctions(int S, vector<int> cities, double junctionCost, double failureProbability) {
         // store number of cities for building the roads
         NC = cities.size() / 2;
@@ -156,27 +158,26 @@ public:
         // build a road from the single junction to each city
         // (we assume that it was built, but don't check it)
         vector<int> ret;
-
         while (uf.size(0) < NC) {
+            double d = 1e8;
+            int idx1 = -1, idx2 = -1;
             for (int u=0; u<NC; ++u) {
-                double d = 1e8;
-                int idx = -1;
                 for (int v=0; v<NC; ++v) {
                     if (uf.same(u, v)) continue;
                     double tmp = dist(c[u*2], c[u*2+1], c[v*2], c[v*2+1]);
                     if (d > tmp) {
                         d = tmp;
-                        idx = v;
+                        idx1 = u;
+                        idx2 = v;
                     }
                 }
-                if (idx != -1) {
-                    uf.unite(u, idx);
-                    ret.push_back(u);
-                    ret.push_back(idx);
-                }
+            }
+            if (d != 1e8) {
+                uf.unite(idx1, idx2);
+                ret.push_back(idx1);
+                ret.push_back(idx2);
             }
         }
-
         return ret;
     }
 
