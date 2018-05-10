@@ -135,6 +135,12 @@ struct UnionFind {
     }
 };
 
+const int MAXE = 100010 * 2;
+struct edge { int u, v, cost; edge(int u, int v, int cost) :u(u), v(v), cost(cost) {} edge() {} };
+
+bool comp(const edge& e1, const edge& e2) {
+    return e1.cost < e2.cost;
+}
 
 class RoadsAndJunctions {
 public:
@@ -145,16 +151,31 @@ public:
     UnionFind uf;
 
     vector<int> junctions;
+    int V, E;
+
+    edge es[MAXE];
 
     vector<int> buildJunctions(int S, vector<int> cities, double junctionCost, double failureProbability) {
         // store number of cities for building the roads
         NC = cities.size() / 2;
+        V = NC;
         S = this->S;
         c = cities;
         uf.init(NC);
+
+        for (int i=0; i<NC; ++i) {
+            for (int j=i+1; j<NC; ++j) {
+                double d = dist(c[i*2], c[i*2+1], c[j*2], c[j*2+1]);
+                es[E++] = edge(i, j, d);
+                es[E++] = edge(j, i, d);
+            }
+        }
+
         return {};
     }
     vector<int> buildRoads(vector<int> junctionStatus) {
+
+        //return make_kruskal();
         // build a road from the single junction to each city
         // (we assume that it was built, but don't check it)
         vector<int> ret;
@@ -179,6 +200,22 @@ public:
             }
         }
         return ret;
+    }
+
+    vector<int> make_kruskal() {
+        sort(es, es+E, comp);
+        UnionFind uf;
+        vector<int> res;
+        uf.init(V);
+        for (int i=0; i<E; ++i) {
+            edge e = es[i];
+            if (!uf.same(e.u, e.v)) {
+                uf.unite(e.u, e.v);
+                res.push_back(e.u);
+                res.push_back(e.v);
+            }
+        }
+        return res;
     }
 
     double dist(double ax, double ay, double bx, double by) {
