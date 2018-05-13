@@ -10,6 +10,7 @@
 #include <set>
 #include <random>
 #include <fstream>
+#include <bitset>
 using namespace std;
 #define rep(i,n) for (int (i)=(0);(i)<(int)(n);++(i))
 
@@ -168,22 +169,9 @@ public:
         //V = NC;
         S = s;
         c = cities;
-
-        // for (int i=0; i<NC; ++i) {
-        //     for (int j=i+1; j<NC; ++j) {
-        //         double d = dist(c[i*2], c[i*2+1], c[j*2], c[j*2+1]);
-        //         es[E++] = edge(i, j, d);
-        //         es[E++] = edge(j, i, d);
-        //     }
-        // }
-        //
+        bitset<1000*1000+2> used;
         vector<int> ccc = c;
         double score = make_greedy_score(ccc, ccc.size()/2);
-
-        set<pair<int, int>> st;
-        for (int i=0; i<c.size(); ++i) {
-            st.insert(make_pair(c[i*2], c[i*2+1]));
-        }
 
         //return junctions;
 
@@ -206,6 +194,10 @@ public:
         // }
         //
         // cerr << junctions.size() << endl;
+
+        for (int i=0; i<NC; ++i) {
+            used[cities[i*2+1]*S+cities[i*2]] = 1;
+        }
 
         int idx = 0;
         while (!timer.time_over()) {
@@ -236,28 +228,23 @@ public:
             // int x1 = rnd()%S, x2 = rnd()%S, y1 = rnd()%S, y2 = rnd()%S;
             //
             //
-            // //if (st.count(make_pair(x, y))) continue;
-            // ccc.push_back(x1);
-            // ccc.push_back(y1);
-            // ccc.push_back(x2);
-            // ccc.push_back(y2);
+            //if (st.count(make_pair(x, y))) continue;
+            // if (used[y*S+x]) continue;
+            // ccc.push_back(x);
+            // ccc.push_back(y);
             // double tmp_score = make_greedy_score(ccc, ccc.size()/2);
-            // if (tmp_score+(ccc.size()/2)*junctionCost < score) {
-            //     score = tmp_score+(ccc.size()/2)*junctionCost;
-            //     junctions.push_back(x1);
-            //     junctions.push_back(y1);
-            //     junctions.push_back(x2);
-            //     junctions.push_back(y2);
-            //     //st.insert(make_pair(x, y));
+            // if (tmp_score+(junctions.size()/2+1)*junctionCost < score) {
+            //     score = tmp_score+(junctions.size()/2+1)*junctionCost;
+            //     junctions.push_back(x);
+            //     junctions.push_back(y);
+            //     used[y*S+1] = 1;
             // }
             // else {
             //     ccc.pop_back();
             //     ccc.pop_back();
-            //     ccc.pop_back();
-            //     ccc.pop_back();
             // }
 
-            // int sz = rnd()%(5-2)+2;
+            // int sz = 3;
             // int gx = 0, gy = 0, cccsz = ccc.size();
             // for (int i=0; i<sz; ++i) {
             //     gx += ccc[rnd()%cccsz];
@@ -265,12 +252,16 @@ public:
             // }
             // gx /= sz;
             // gy /= sz;
-
+            //
             int cccsz = ccc.size();
-            int gx = ccc[rnd()%cccsz], gy = ccc[rnd()%cccsz];
+            int gx = ccc[idx], gy = ccc[idx+1];
             bool tmp1 = rnd()%2, tmp2 = rnd()%2;
-            gx += (rnd()%10+10)*(tmp1 ? 1 : -1);
-            gy += (rnd()%10+10)*(tmp2 ? 1 : -1);
+            gx += (rnd()%40 + 20)*(tmp1 ? 1 : -1);
+            gy += (rnd()%40 + 20)*(tmp2 ? 1 : -1);
+            if (gx < 0) gx = 0; else if (gx >= S) gx = S-1;
+            if (gy < 0) gy = 0; else if (gy >= S) gy = S-1;
+            idx = (idx+2)%cccsz;
+            if (used[gy*S+gx]) continue;
             ccc.push_back(gx);
             ccc.push_back(gy);
             double tmp_score = make_greedy_score(ccc, ccc.size()/2);
@@ -278,13 +269,19 @@ public:
                 score = tmp_score+(junctions.size()/2+1)*junctionCost;
                 junctions.push_back(gx);
                 junctions.push_back(gy);
-                st.insert(make_pair(gx, gy));
+                used[gy*S+gx] = 1;
             }
             else {
                 ccc.pop_back();
                 ccc.pop_back();
             }
+
         }
+
+        // for (int &i : junctions) {
+        //     cerr << i << " ";
+        // }
+        // cerr << endl;
 
         return junctions;
     }
@@ -292,7 +289,7 @@ public:
     int dame = 0;
 
     vector<int> buildRoads(vector<int> junctionStatus) {
-        cerr << junctionStatus.size() << endl;
+        //cerr << junctionStatus.size() << endl;
         for (int i = 0; i < junctionStatus.size(); ++i) {
             c.push_back(junctions[i*2]);
             c.push_back(junctions[i*2+1]);
