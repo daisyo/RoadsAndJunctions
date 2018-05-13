@@ -185,22 +185,44 @@ public:
             st.insert(make_pair(c[i*2], c[i*2+1]));
         }
 
+        //return junctions;
+
+        // for (int x=1; x<S; ++x) {
+        //     for (int y=1; y<S; ++y) {
+        //         ccc.push_back(x);
+        //         ccc.push_back(y);
+        //         double tmp_score = make_greedy_score(ccc, ccc.size()/2);
+        //         if (tmp_score+(junctions.size()/2+1)*junctionCost < score) {
+        //             score = tmp_score+(junctions.size()/2+1)*junctionCost;
+        //             junctions.push_back(x);
+        //             junctions.push_back(y);
+        //             if (junctions.size()/2 >= 20) return junctions;
+        //         }
+        //         else {
+        //             ccc.pop_back();
+        //             ccc.pop_back();
+        //         }
+        //     }
+        // }
+        //
+        // cerr << junctions.size() << endl;
+
         int idx = 0;
         while (!timer.time_over()) {
 
-            int x, y;
-            if (timer.get_time() < timer.get_limit()/4) {
-                 x = rnd()%(S/2), y = rnd()%(S/2);
-            }
-            else if (timer.get_time() < timer.get_limit()/4*2) {
-                x = rnd()%S; y = rnd()%(S/2);
-            }
-            else if (timer.get_time() < timer.get_limit()/4*3) {
-                x = rnd()%(S/2), y = rnd()%S;
-            }
-            else {
-                x = rnd()%S, y = rnd()%S;
-            }
+            // int x, y;
+            // if (timer.get_time() < timer.get_limit()/4) {
+            //      x = rnd()%(S/2), y = rnd()%(S/2);
+            // }
+            // else if (timer.get_time() < timer.get_limit()/4*2) {
+            //     x = rnd()%S; y = rnd()%(S/2);
+            // }
+            // else if (timer.get_time() < timer.get_limit()/4*3) {
+            //     x = rnd()%(S/2), y = rnd()%S;
+            // }
+            // else {
+            //     x = rnd()%S, y = rnd()%S;
+            // }
 
             // int x = cities[idx*2], y = cities[idx*2+1];
             // bool tmp = rnd()%2;
@@ -211,15 +233,52 @@ public:
             // if (y < 0) y = 0; else if (y >= S) y = S-1;
             // idx = (idx + 1) % NC;
 
-            if (st.count(make_pair(x, y))) continue;
-            ccc.push_back(x);
-            ccc.push_back(y);
+            // int x1 = rnd()%S, x2 = rnd()%S, y1 = rnd()%S, y2 = rnd()%S;
+            //
+            //
+            // //if (st.count(make_pair(x, y))) continue;
+            // ccc.push_back(x1);
+            // ccc.push_back(y1);
+            // ccc.push_back(x2);
+            // ccc.push_back(y2);
+            // double tmp_score = make_greedy_score(ccc, ccc.size()/2);
+            // if (tmp_score+(ccc.size()/2)*junctionCost < score) {
+            //     score = tmp_score+(ccc.size()/2)*junctionCost;
+            //     junctions.push_back(x1);
+            //     junctions.push_back(y1);
+            //     junctions.push_back(x2);
+            //     junctions.push_back(y2);
+            //     //st.insert(make_pair(x, y));
+            // }
+            // else {
+            //     ccc.pop_back();
+            //     ccc.pop_back();
+            //     ccc.pop_back();
+            //     ccc.pop_back();
+            // }
+
+            // int sz = rnd()%(5-2)+2;
+            // int gx = 0, gy = 0, cccsz = ccc.size();
+            // for (int i=0; i<sz; ++i) {
+            //     gx += ccc[rnd()%cccsz];
+            //     gy += ccc[rnd()%cccsz];
+            // }
+            // gx /= sz;
+            // gy /= sz;
+
+            int cccsz = ccc.size();
+            int gx = ccc[rnd()%cccsz], gy = ccc[rnd()%cccsz];
+            bool tmp1 = rnd()%2, tmp2 = rnd()%2;
+            gx += (rnd()%10+10)*(tmp1 ? 1 : -1);
+            gy += (rnd()%10+10)*(tmp2 ? 1 : -1);
+            ccc.push_back(gx);
+            ccc.push_back(gy);
             double tmp_score = make_greedy_score(ccc, ccc.size()/2);
-            if (tmp_score+(ccc.size()/2)*junctionCost < score) {
-                score = tmp_score+(ccc.size()/2)*junctionCost;
-                junctions.push_back(x);
-                junctions.push_back(y);
-                st.insert(make_pair(x, y));
+            if (tmp_score+(junctions.size()/2+1)*junctionCost < score) {
+                score = tmp_score+(junctions.size()/2+1)*junctionCost;
+                junctions.push_back(gx);
+                junctions.push_back(gy);
+                st.insert(make_pair(gx, gy));
             }
             else {
                 ccc.pop_back();
