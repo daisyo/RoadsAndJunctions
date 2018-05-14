@@ -173,26 +173,6 @@ public:
         vector<int> ccc = c;
         double score = make_greedy_score(ccc, ccc.size()/2);
 
-        //return junctions;
-
-        // for (int x=1; x<S; ++x) {
-        //     for (int y=1; y<S; ++y) {
-        //         ccc.push_back(x);
-        //         ccc.push_back(y);
-        //         double tmp_score = make_greedy_score(ccc, ccc.size()/2);
-        //         if (tmp_score+(junctions.size()/2+1)*junctionCost < score) {
-        //             score = tmp_score+(junctions.size()/2+1)*junctionCost;
-        //             junctions.push_back(x);
-        //             junctions.push_back(y);
-        //             if (junctions.size()/2 >= 20) return junctions;
-        //         }
-        //         else {
-        //             ccc.pop_back();
-        //             ccc.pop_back();
-        //         }
-        //     }
-        // }
-        //
         // cerr << junctions.size() << endl;
 
         for (int i=0; i<NC; ++i) {
@@ -200,62 +180,15 @@ public:
         }
 
         int idx = 0;
+        long long cnt=0;
+        timer.set_limit(7.0);
         while (!timer.time_over()) {
-
-            // int x, y;
-            // if (timer.get_time() < timer.get_limit()/4) {
-            //      x = rnd()%(S/2), y = rnd()%(S/2);
-            // }
-            // else if (timer.get_time() < timer.get_limit()/4*2) {
-            //     x = rnd()%S; y = rnd()%(S/2);
-            // }
-            // else if (timer.get_time() < timer.get_limit()/4*3) {
-            //     x = rnd()%(S/2), y = rnd()%S;
-            // }
-            // else {
-            //     x = rnd()%S, y = rnd()%S;
-            // }
-
-            // int x = cities[idx*2], y = cities[idx*2+1];
-            // bool tmp = rnd()%2;
-            // x += (rnd()%100 + 10) * (tmp ? 1 : -1);
-            // if (x < 0) x = 0; else if (x >= S) x = S-1;
-            // tmp = rnd()%2;
-            // y += (rnd()%100 + 10) * (tmp ? 1 : -1);
-            // if (y < 0) y = 0; else if (y >= S) y = S-1;
-            // idx = (idx + 1) % NC;
-
-            // int x1 = rnd()%S, x2 = rnd()%S, y1 = rnd()%S, y2 = rnd()%S;
-            //
-            //
-            //if (st.count(make_pair(x, y))) continue;
-            // if (used[y*S+x]) continue;
-            // ccc.push_back(x);
-            // ccc.push_back(y);
-            // double tmp_score = make_greedy_score(ccc, ccc.size()/2);
-            // if (tmp_score+(junctions.size()/2+1)*junctionCost < score) {
-            //     score = tmp_score+(junctions.size()/2+1)*junctionCost;
-            //     junctions.push_back(x);
-            //     junctions.push_back(y);
-            //     used[y*S+1] = 1;
-            // }
-            // else {
-            //     ccc.pop_back();
-            //     ccc.pop_back();
-            // }
-
-            // int sz = 3;
-            // int gx = 0, gy = 0, cccsz = ccc.size();
-            // for (int i=0; i<sz; ++i) {
-            //     gx += ccc[rnd()%cccsz];
-            //     gy += ccc[rnd()%cccsz];
-            // }
-            // gx /= sz;
-            // gy /= sz;
-            //
+            ++cnt;
             int cccsz = ccc.size();
             int gx = ccc[idx], gy = ccc[idx+1];
             bool tmp1 = rnd()%2, tmp2 = rnd()%2;
+            // gx += (rnd()%(S/4)+1)*(tmp1 ? 1 : -1);
+            // gy += (rnd()%(S/4)+1)*(tmp2 ? 1 : -1);
             gx += (rnd()%40 + 20)*(tmp1 ? 1 : -1);
             gy += (rnd()%40 + 20)*(tmp2 ? 1 : -1);
             if (gx < 0) gx = 0; else if (gx >= S) gx = S-1;
@@ -275,13 +208,39 @@ public:
                 ccc.pop_back();
                 ccc.pop_back();
             }
-
+            if (junctions.size()/2 >= 2*NC) break;
         }
 
-        // for (int &i : junctions) {
-        //     cerr << i << " ";
-        // }
-        // cerr << endl;
+        timer.set_limit(LIMIT_SEC);
+        int jcsz = junctions.size()/2;
+        if (jcsz == 0) return junctions;
+
+        while (!timer.time_over()) {
+            int idx = rnd()%jcsz;
+            int prev_x = ccc[2*NC+idx*2], prev_y = ccc[2*NC+idx*2+1];
+            int& x = ccc[2*NC+idx*2];
+            int& y = ccc[2*NC+idx*2+1];
+            bool tmp1 = rnd()%2, tmp2 = rnd()%2;
+            x += (rnd()%5)*(tmp1 ? 1 : -1);
+            y += (rnd()%5)*(tmp2 ? 1 : -1);
+            if (x < 0) x = 0; else if (x >= S) x = S-1;
+            if (y < 0) y = 0; else if (y >= S) y = S-1;
+            if (used[y*S+x]) continue;
+            double tmp_score = make_greedy_score(ccc, ccc.size()/2);
+            if (tmp_score+(junctions.size()/2)*junctionCost < score) {
+                //cerr << score << ", " << tmp_score+(junctions.size()/2)*junctionCost << endl;
+                score = tmp_score+(junctions.size()/2)*junctionCost;
+                junctions[idx*2] = x;
+                junctions[idx*2+1] = y;
+                used[prev_y*S+prev_x] = 0;
+                used[y*S+x] = 1;
+            }
+            else {
+                //cerr << tmp_score*(junctions.size()/2)*junctionCost << ", " << score << endl;
+                ccc[2*NC+idx*2] = prev_x;
+                ccc[2*NC+idx*2+1] = prev_y;
+            }
+        }
 
         return junctions;
     }
