@@ -23,7 +23,7 @@ uint64_t rdtsc(){
     return ((uint64_t)hi << 32) | lo;
 }
 
-#define LIMIT_SEC 9.5
+#define LIMIT_SEC 9.8
 
 #define LOCAL_SCALE 2494000000ULL
 #define TOPCODER_SCALE 2800000000ULL
@@ -137,14 +137,16 @@ struct UnionFind {
     }
 };
 
-const int MAXE = 100010 * 2;
-struct edge { int u, v; double cost; edge(int u, int v, double cost) :u(u), v(v), cost(cost) {} edge() {} };
+// const int MAXE = 100010 * 2;
+// struct edge { int u, v; double cost; edge(int u, int v, double cost) :u(u), v(v), cost(cost) {} edge() {} };
+//
+// bool comp(const edge& e1, const edge& e2) {
+//     return e1.cost < e2.cost;
+// }
+//
+// ofstream fout("text.txt");
 
-bool comp(const edge& e1, const edge& e2) {
-    return e1.cost < e2.cost;
-}
-
-ofstream fout("text.txt");
+bitset<1000*1000+2> used;
 
 class RoadsAndJunctions {
 public:
@@ -155,7 +157,7 @@ public:
     UnionFind uf;
 
     //int E, V;
-    edge es[MAXE];
+    //edge es[MAXE];
     vector<int> junctions;
 
     Timer timer;
@@ -169,7 +171,6 @@ public:
         //V = NC;
         S = s;
         c = cities;
-        bitset<1000*1000+2> used;
         vector<int> ccc = c;
         double score = make_greedy_score(ccc, ccc.size()/2);
 
@@ -182,15 +183,24 @@ public:
         int idx = 0;
         long long cnt=0;
         timer.set_limit(7.0);
+
+        int SSS = 40;
+        if (S < 100) SSS = 20;
+        else if (S < 200) SSS = 30;
+        else if (S < 400) SSS = 40;
+        else if (S < 500) SSS = 80;
+        else if (S < 800) SSS = 100;
+        else SSS = 150;
+
         while (!timer.time_over()) {
             ++cnt;
             int cccsz = ccc.size();
             int gx = ccc[idx], gy = ccc[idx+1];
             bool tmp1 = rnd()%2, tmp2 = rnd()%2;
-            // gx += (rnd()%(S/4)+1)*(tmp1 ? 1 : -1);
-            // gy += (rnd()%(S/4)+1)*(tmp2 ? 1 : -1);
-            gx += (rnd()%40 + 20)*(tmp1 ? 1 : -1);
-            gy += (rnd()%40 + 20)*(tmp2 ? 1 : -1);
+            //gx += (rnd()%(S/4))*(tmp1 ? 1 : -1);
+            //gy += (rnd()%(S/4))*(tmp2 ? 1 : -1);
+            gx += (rnd()%SSS+10)*(tmp1 ? 1 : -1);
+            gy += (rnd()%SSS+10)*(tmp2 ? 1 : -1);
             if (gx < 0) gx = 0; else if (gx >= S) gx = S-1;
             if (gy < 0) gy = 0; else if (gy >= S) gy = S-1;
             idx = (idx+2)%cccsz;
@@ -211,6 +221,8 @@ public:
             if (junctions.size()/2 >= 2*NC) break;
         }
 
+        //return junctions;
+
         timer.set_limit(LIMIT_SEC);
         int jcsz = junctions.size()/2;
         if (jcsz == 0) return junctions;
@@ -225,10 +237,12 @@ public:
             y += (rnd()%5)*(tmp2 ? 1 : -1);
             if (x < 0) x = 0; else if (x >= S) x = S-1;
             if (y < 0) y = 0; else if (y >= S) y = S-1;
-            if (used[y*S+x]) continue;
+            if (used[y*S+x]) {
+                x = prev_x;
+                y = prev_y;
+            }
             double tmp_score = make_greedy_score(ccc, ccc.size()/2);
             if (tmp_score+(junctions.size()/2)*junctionCost < score) {
-                //cerr << score << ", " << tmp_score+(junctions.size()/2)*junctionCost << endl;
                 score = tmp_score+(junctions.size()/2)*junctionCost;
                 junctions[idx*2] = x;
                 junctions[idx*2+1] = y;
@@ -236,9 +250,8 @@ public:
                 used[y*S+x] = 1;
             }
             else {
-                //cerr << tmp_score*(junctions.size()/2)*junctionCost << ", " << score << endl;
-                ccc[2*NC+idx*2] = prev_x;
-                ccc[2*NC+idx*2+1] = prev_y;
+                x = prev_x;
+                y = prev_y;
             }
         }
 
