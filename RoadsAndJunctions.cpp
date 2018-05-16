@@ -99,7 +99,7 @@ random_device rd;
 mt19937 rand_gen(rd());
 
 struct UnionFind {
-    static const int MAX = 1000001;
+    static const int MAX = 500;
     int par[MAX];
     void init(int N) {
         for (int i=0; i<N; ++i) {
@@ -146,7 +146,18 @@ struct UnionFind {
 //
 // ofstream fout("text.txt");
 
-bitset<1000*1000+2> used;
+bool used[1000*1000+2];
+
+int best_state[4][500];
+int best_sz[4] = {0};
+pair<int, int> pos[4][500];
+int pos_sz[4] = {0};
+
+int ccc[500];
+int ccc_sz = 0;
+
+int junctions_state[4][500];
+int junctions_state_sz[4] = {0};
 
 class RoadsAndJunctions {
 public:
@@ -167,15 +178,19 @@ public:
     vector<int> buildJunctions(int s, vector<int> cities, double junctionCost, double failureProbability) {
         // store number of cities for building the roads
 
-        NC = cities.size() / 2;
         //V = NC;
+        NC = cities.size() / 2;
         S = s;
         c = cities;
-        vector<int> ccc = c;
-        double score = make_greedy_score(ccc, ccc.size()/2);
-        vector<int> best;
+        for (int i=0; i<NC; ++i) {
+            ccc[i*2] = c[i*2];
+            ccc[i*2+1] = c[i*2+1];
+            ccc_sz += 2;
+        }
 
-        vector<pair<int, int>> pos[4];
+        double score = make_greedy_score2();
+        //vector<int> best;
+
         for (int i=0; i<NC; ++i) {
             int x = cities[i*2], y = cities[i*2+1], idx = 0;
             used[cities[i*2+1]*S+cities[i*2]] = 1;
@@ -183,132 +198,99 @@ public:
             else if (x >= S/2 and y < S/2) idx = 1;
             else if (x < S/2 and y >= S/2) idx = 2;
             else                           idx = 3;
-            pos[idx].emplace_back(x, y);
+            pos[idx][pos_sz[idx]++] = make_pair(x, y);
         }
+
+        double limit = LIMIT_SEC - 3, lim = limit/4.0;;
         long long cnt=0;
-        timer.set_limit(8.0);
+        timer.set_limit(limit);
 
         int idx = 0;
         double current_time, start_time = timer.get_time();
         double start_temp = 10, end_temp = 0.5;
-        double diff_temp = (end_temp - start_temp) / 2.0;
+        double diff_temp = (end_temp - start_temp) / lim;
 
-
-        while (idx < 4 and pos[idx].size() == 0) idx++;
+        while (idx < 4 and pos_sz[idx] == 0) idx++;
 
         while ((current_time = timer.get_time()) < LIMIT_SEC and idx < 4) {
-            if (current_time >= (idx+1)*2.0) {
+            ++cnt;
+            if (current_time >= (idx+1)*lim) {
                 start_time = current_time;
                 idx++;
-                if (pos[idx].size() == 0) idx++;
+                if (pos_sz[idx] == 0) idx++;
                 if (idx >= 4) break;
             }
 
-            bool f = rnd()%2;
-            if (junctions.size()/2 >= 2*NC) f = false;
+            bool f = (rnd()%10>=4);
+            if (junctions_state_sz[idx]/2 >= (2*NC)/4) f = false;
 
             if (f) {
-                int rid = rnd()%pos[idx].size();
+                int rid = rnd()%pos_sz[idx];
                 int gx = pos[idx][rid].first, gy = pos[idx][rid].second;
                 bool tmp1 = rnd()%2, tmp2 = rnd()%2;
-                gx += (rnd()%40+10)*(tmp1 ? 1 : -1);
-                gy += (rnd()%40+10)*(tmp2 ? 1 : -1);
+                gx += (rnd()%30+5)*(tmp1 ? 1 : -1);
+                gy += (rnd()%30+5)*(tmp2 ? 1 : -1);
                 if (gx < 0) gx = 0; else if (gx >= S) gx = S-1;
                 if (gy < 0) gy = 0; else if (gy >= S) gy = S-1;
                 if (used[gy*S+gx]) continue;
-                ccc.push_back(gx);
-                ccc.push_back(gy);
-                double tmp_score = make_greedy_score(ccc, ccc.size()/2);
-
+                ccc[ccc_sz++] = gx;
+                ccc[ccc_sz++] = gy;
+                double tmp_score = make_greedy_score2();
                 bool force = true;
-                double change = score - (tmp_score+(junctions.size()/2+1)*junctionCost);
+                double change = score - (tmp_score + (junctions_state_sz[idx]/2+1)*junctionCost);
                 if (change < 0) force = exp(change / (start_temp + diff_temp * (current_time - start_time))) * UINT32_MAX > rnd();
                 else force = true;
 
                 if (force) {
-                    score = tmp_score+(junctions.size()/2+1)*junctionCost;
-                    junctions.push_back(gx);
-                    junctions.push_back(gy);
+                    score = tmp_score + (junctions_state_sz[idx]/2+1)*junctionCost;
+                    junctions_state[idx][junctions_state_sz[idx]++] = gx;
+                    junctions_state[idx][junctions_state_sz[idx]++] = gy;
                     used[gy*S+gx] = 1;
-                    if (change > 0) best = junctions;
+                    if (change > 0) {
+                        memcpy(best_state[idx], junctions_state[idx], sizeof(junctions_state[idx]));
+                        best_sz[idx] = junctions_state_sz[idx];
+                    }
                 }
                 else {
-                    ccc.pop_back();
-                    ccc.pop_back();
+                    ccc_sz -= 2;
                 }
             }
             else {
-                int JC = ccc.size()/2 - NC;
+                int JC = ccc_sz/2 - NC;
                 if (JC == 0) continue;
 
                 int rid = rnd()%JC;
                 int x = ccc[NC*2+rid*2], y = ccc[NC*2+rid*2+1];
-                swap(ccc[ccc.size()-2], ccc[NC*2+rid*2]);
-                swap(ccc[ccc.size()-1], ccc[NC*2+rid*2+1]);
-                ccc.pop_back();
-                ccc.pop_back();
-
-                double tmp_score = make_greedy_score(ccc, ccc.size()/2);
-
+                swap(ccc[ccc_sz-2], ccc[NC*2+rid*2]);
+                swap(ccc[ccc_sz-1], ccc[NC*2+rid*2+1]);
+                ccc_sz -= 2;
+                double tmp_score = make_greedy_score2();
                 bool force = false;
-                double change = score - (tmp_score+(junctions.size()/2-1)*junctionCost);
+                double change = score - (tmp_score + (junctions_state_sz[idx]/2+1)*junctionCost);
                 if (change < 0) force = exp(change / (start_temp + diff_temp * (current_time - start_time))) * UINT32_MAX > rnd();
                 else force = true;
 
                 if (force) {
-                    score = tmp_score+(junctions.size()/2-1)*junctionCost;
-                    swap(junctions[junctions.size()-2], junctions[rid*2]);
-                    swap(junctions[junctions.size()-1], junctions[rid*2+1]);
-                    junctions.pop_back();
-                    junctions.pop_back();
-                    if (change > 0) best = junctions;
+                    score = tmp_score + (junctions_state_sz[idx]/2+1)*junctionCost;
+                    swap(junctions_state[idx][junctions_state_sz[idx]-2], junctions_state[idx][rid*2]);
+                    swap(junctions_state[idx][junctions_state_sz[idx]-1], junctions_state[idx][rid*2+1]);
+                    junctions_state_sz[idx] -= 2;
+                    if (change > 0) {
+                        memcpy(best_state[idx], junctions_state[idx], sizeof(junctions_state[idx]));
+                        best_sz[idx] = junctions_state_sz[idx];
+                    }
                 }
                 else {
-                    ccc.push_back(x);
-                    ccc.push_back(y);
+                    ccc[ccc_sz++] = x;
+                    ccc[ccc_sz++] = y;
                 }
             }
         }
 
-        // return best;
-
-
-        // while (!timer.time_over()) {
-        //     ++cnt;
-        //     int cccsz = ccc.size();
-        //     int gx = ccc[idx], gy = ccc[idx+1];
-        //     bool tmp1 = rnd()%2, tmp2 = rnd()%2;
-        //     gx += (rnd()%30+5)*(tmp1 ? 1 : -1);
-        //     gy += (rnd()%30+5)*(tmp2 ? 1 : -1);
-        //     if (gx < 0) gx = 0; else if (gx >= S) gx = S-1;
-        //     if (gy < 0) gy = 0; else if (gy >= S) gy = S-1;
-        //     idx = (idx+2)%NC;
-        //     if (used[gy*S+gx]) continue;
-        //     ccc.push_back(gx);
-        //     ccc.push_back(gy);
-        //     double tmp_score = make_greedy_score(ccc, ccc.size()/2);
-        //
-        //     double E = -failureProbability*junctionCost + (1-failureProbability)*(score - (tmp_score+(junctions.size()/2+1)*junctionCost));
-        //
-        //     //if (tmp_score+(junctions.size()/2+1)*junctionCost < score) {
-        //     if (tmp_score+(junctions.size()/2+1)*junctionCost < score) {
-        //         cerr << timer.get_time() << endl;
-        //         //cerr << E << endl;
-        //         score = tmp_score+(junctions.size()/2+1)*junctionCost;
-        //         junctions.push_back(gx);
-        //         junctions.push_back(gy);
-        //         used[gy*S+gx] = 1;
-        //     }
-        //     else {
-        //         ccc.pop_back();
-        //         ccc.pop_back();
-        //     }
-        //     if (junctions.size()/2 >= 2*NC) break;
-        // }
-
-        //return junctions;
-
-        junctions = best;
+        for (int idx=0; idx<4; ++idx)
+        for (int i=0; i<best_sz[idx]; ++i) {
+            junctions.emplace_back(best_state[idx][i]);
+        }
 
         timer.set_limit(LIMIT_SEC);
         int jcsz = junctions.size()/2;
@@ -323,10 +305,10 @@ public:
             int& y = ccc[2*NC+idx*2+1];
             bool tmp1 = rnd()%2, tmp2 = rnd()%2;
             if (rnd()%2) {
-                x += (rnd()%5+1)*(tmp1 ? 1 : -1);
+                x += (rnd()%5)*(tmp1 ? 1 : -1);
             }
             else {
-                y += (rnd()%5+1)*(tmp2 ? 1 : -1);
+                y += (rnd()%5)*(tmp2 ? 1 : -1);
             }
             if (x < 0) x = 0; else if (x >= S) x = S-1;
             if (y < 0) y = 0; else if (y >= S) y = S-1;
@@ -334,14 +316,13 @@ public:
                 x = prev_x;
                 y = prev_y;
             }
-            double tmp_score = make_greedy_score(ccc, ccc.size()/2);
+            double tmp_score = make_greedy_score2();
             if (tmp_score+(junctions.size()/2)*junctionCost < score) {
                 score = tmp_score+(junctions.size()/2)*junctionCost;
                 junctions[idx*2] = x;
                 junctions[idx*2+1] = y;
                 used[prev_y*S+prev_x] = 0;
                 used[y*S+x] = 1;
-                cerr << timer.get_time() << endl;
             }
             else {
                 x = prev_x;
@@ -384,6 +365,32 @@ public:
             if (d != 1e8) {
                 uf.unite(idx1, idx2);
                 score += dist(c[idx1*2], c[idx1*2+1], c[idx2*2], c[idx2*2+1]);
+            }
+        }
+        return score;
+    }
+
+    double make_greedy_score2() {
+        double score = 0;
+        int V = ccc_sz / 2;
+        uf.init(V);
+        while (uf.size(0) < V) {
+            double d = 1e8;
+            int idx1 = -1, idx2 = -1;
+            for (int u=0; u<V; ++u) {
+                for (int v=0; v<V; ++v) {
+                    if (uf.same(u, v)) continue;
+                    double tmp = dist(ccc[u*2], ccc[u*2+1], ccc[v*2], ccc[v*2+1]);
+                    if (d > tmp) {
+                        d = tmp;
+                        idx1 = u;
+                        idx2 = v;
+                    }
+                }
+            }
+            if (d != 1e8) {
+                uf.unite(idx1, idx2);
+                score += dist(ccc[idx1*2], ccc[idx1*2+1], ccc[idx2*2], ccc[idx2*2+1]);
             }
         }
         return score;
